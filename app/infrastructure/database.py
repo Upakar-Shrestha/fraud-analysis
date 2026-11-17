@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.core.config import settings
 from app.core.constants import DB_MAX_OVERFLOW, DB_POOL_SIZE, DB_POOL_TIMEOUT_SECONDS
@@ -13,3 +13,7 @@ engine = create_engine(
 )
 
 SessionFactory = sessionmaker(bind=engine)
+
+class Base(DeclarativeBase):
+    pass
+
