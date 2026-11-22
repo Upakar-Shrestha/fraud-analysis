@@ -35,11 +35,14 @@ PASS_THROUGH_WINDOW_MINUTES = 60
 LOCAL_TIMEZONE = "Asia/Kathmandu"    
 AMOUNT_SPREAD = 0.5                  
 TRANSACTION_TYPE_WEIGHTS = {
-    "P2P_TRANSFER": 0.35,
-    "MERCHANT_PAYMENT": 0.30,
-    "BILL_PAYMENT": 0.15,
-    "TOPUP": 0.12,
-    "BANK_WITHDRAWAL": 0.08,
+    "PAYMENT": 0.40,        # merchant + bill payments (was MERCHANT_PAYMENT 0.30 + BILL_PAYMENT 0.15)
+    "TRANSFER": 0.33,       # was P2P_TRANSFER
+    "LOAD": 0.10,           # was TOPUP
+    "WITHDRAW": 0.05,
+    "CASH_IN": 0.04,
+    "CASH_OUT": 0.04,
+    "REFUND": 0.02,         # links to an earlier PAYMENT via parent_txn
+    "REWARD": 0.02,
 }
 STATUS_WEIGHTS = {
     "COMPLETED": 0.92,
@@ -48,6 +51,15 @@ STATUS_WEIGHTS = {
     "ON_HOLD": 0.01,
     "INITIATED": 0.01,
     "REFUNDED": 0.01,
-    "CANCELLED": 0.01,
+    "CANCELED": 0.01,
 }
-
+CHANNEL_WEIGHTS = {
+    "APP": 0.60,
+    "QR": 0.20,
+    "WEB": 0.08,
+    "MERCHANT_API": 0.07,
+    "AGENT_TERMINAL": 0.05,
+}
+ACCOUNT_AGE_MAX_DAYS = 730          # accounts are 45 days to 2 years old
+REWARD_AMOUNT_MIN = 1_000           # paisa = Rs 10 cashback
+REWARD_AMOUNT_MAX = 10_000          # paisa = Rs 100 cashback
