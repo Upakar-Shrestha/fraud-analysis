@@ -16,8 +16,8 @@ def create_transactions(db: Session, request: SeedRequest) -> SeedData:
 
     statement = (
         insert(Transaction)
-        .on_conflict_do_nothing(index_elements=[Transaction.id])
-        .returning(Transaction.id)
+        .on_conflict_do_nothing(index_elements=[Transaction.idx])
+        .returning(Transaction.idx)
     )
     inserted = len(db.execute(statement, rows).all())
     db.commit()
