@@ -63,3 +63,12 @@ CHANNEL_WEIGHTS = {
 ACCOUNT_AGE_MAX_DAYS = 730          # accounts are 45 days to 2 years old
 REWARD_AMOUNT_MIN = 1_000           # paisa = Rs 10 cashback
 REWARD_AMOUNT_MAX = 10_000          # paisa = Rs 100 cashback
+
+
+'''analysis constants'''
+LOOKBACK_DAYS = 30                  # history loaded before the target day (for the 30-day median rule)
+
+
+'''API constants'''
+DEFAULT_PAGE_SIZE = 50
+MAX_PAGE_SIZE = 200                 # stops one request from pulling the whole table

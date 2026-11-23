@@ -304,3 +304,8 @@ def generate_transactions(seed: int, end_date: date) -> list[dict]:
             for row in plant(rng, population, user, rng.choice(fraud_days)):
                 add(row)
     return rows
+
+def day_window_utc(day: date) -> tuple[datetime, datetime]:
+    start = datetime.combine(day, time.min, tzinfo=LOCAL_TZ)   # local midnight
+    end = start + timedelta(days=1)                            # next local midnight
+    return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
