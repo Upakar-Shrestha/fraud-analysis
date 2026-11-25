@@ -23,14 +23,18 @@ UUID_NAMESPACE = uuid.UUID("6f1c2a4e-8d3b-4c5a-9e7f-1b2d3c4e5f60")  # fixed so I
 
 FRAUD_WINDOW_DAYS = 7               # fraud planted only in the last 7 days
 FRAUD_CASES_PER_PATTERN = 5
-BURST_TXN_COUNT = 12                # txns in one burst
-BURST_WINDOW_MINUTES = 10           # txns in one burst occur within 10 minutes
-ANOMALY_MULTIPLIER = 10             # x user's typical amount
-FAILED_ATTEMPTS_BEFORE_SUCCESS = 3
-NEW_DEVICE_AMOUNT = 2_500_000       # paisa = Rs 25,000
-PASS_THROUGH_AMOUNT = 5_000_000     # paisa = Rs 50,000
-PASS_THROUGH_OUT_RATIO = 0.9        # share forwarded out
-PASS_THROUGH_WINDOW_MINUTES = 60
+# planted cases sit inside the senior's example rules so the detectors can find them
+BURST_TXN_COUNT = 12                # 5.1: 12 txns ...
+BURST_WINDOW_MINUTES = 4            # ... within 4 min (rule: 12+ in 5 min)
+ANOMALY_MULTIPLIER = 10             # 5.2: x user's typical amount
+REPEATED_AMOUNT = 999_900           # 5.3: paisa = Rs 9,999
+REPEATED_TXN_COUNT = 8              # 5.3: 8 txns ...
+REPEATED_WINDOW_MINUTES = 8         # ... within 8 min (rule: 8+ in 10 min)
+FAILED_BURST_COUNT = 7              # 5.4: 7 failed txns ...
+FAILED_BURST_WINDOW_MINUTES = 2     # ... within 2 min (rule: 7+ in 3 min)
+FUNNEL_SENDER_COUNT = 15            # 5.8: 15 distinct users send in ...
+FUNNEL_WINDOW_MINUTES = 15          # ... and money leaves within 15 min (rule: 20 min)
+FUNNEL_OUT_RATIO = 0.9              # 5.8: share of received money passed onward
 
 LOCAL_TIMEZONE = "Asia/Kathmandu"    
 AMOUNT_SPREAD = 0.5                  
@@ -67,6 +71,19 @@ REWARD_AMOUNT_MAX = 10_000          # paisa = Rs 100 cashback
 
 '''analysis constants'''
 LOOKBACK_DAYS = 30                  # history loaded before the target day (for the 30-day median rule)
+VELOCITY_MIN_TXN_COUNT = 12         # 5.1: 12+ txns ...
+VELOCITY_WINDOW_MINUTES = 5         # ... within 5 min
+HIGH_VALUE_THRESHOLD = 10_000_000       # 5.2: paisa = Rs 100,000 (senior's example)
+HIGH_VALUE_MEDIAN_MULTIPLIER = 5        # 5.2: 5x the user's median or more
+HIGH_VALUE_MIN_HISTORY_TXNS = 5         # 5.2: fewer past txns -> median not trusted, only fixed threshold
+REPEATED_AMOUNT_MIN_COUNT = 8           # 5.3: 8+ txns ...
+REPEATED_AMOUNT_WINDOW_MINUTES = 10     # ... within 10 min
+REPEATED_AMOUNT_TOLERANCE = 0.01       # ... amounts within 1% of each other
+FAILED_MIN_TXN_COUNT = 7                # 5.4: 7+ failed txns ...
+FAILED_WINDOW_MINUTES = 3               # ... within 3 min
+PASS_THROUGH_MIN_SENDERS = 15           # 5.8: money in from 15+ different users ...
+PASS_THROUGH_WINDOW_MINUTES = 20        # ... and passed on within 20 min
+PASS_THROUGH_MIN_RATIO = 0.8            # ... at least 80% of what came in
 
 
 '''API constants'''
