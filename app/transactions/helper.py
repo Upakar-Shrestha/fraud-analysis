@@ -14,17 +14,20 @@ from app.core.constants import (
     BURST_WINDOW_MINUTES,
     CHANNEL_WEIGHTS,
     DAYS,
-    FAILED_ATTEMPTS_BEFORE_SUCCESS,
+    FAILED_BURST_COUNT,
+    FAILED_BURST_WINDOW_MINUTES,
     FRAUD_CASES_PER_PATTERN,
     FRAUD_WINDOW_DAYS,
+    FUNNEL_OUT_RATIO,
+    FUNNEL_SENDER_COUNT,
+    FUNNEL_WINDOW_MINUTES,
     LOCAL_TIMEZONE,
     MAX_DEVICES_PER_WALLET,
     MAX_TXNS_PER_USER_PER_DAY,
     MERCHANT_WALLET_COUNT,
-    NEW_DEVICE_AMOUNT,
-    PASS_THROUGH_AMOUNT,
-    PASS_THROUGH_OUT_RATIO,
-    PASS_THROUGH_WINDOW_MINUTES,
+    REPEATED_AMOUNT,
+    REPEATED_TXN_COUNT,
+    REPEATED_WINDOW_MINUTES,
     REWARD_AMOUNT_MAX,
     REWARD_AMOUNT_MIN,
     STATUS_WEIGHTS,
@@ -214,60 +217,68 @@ def plant_amount_anomaly(rng: random.Random, population: Population, user: str, 
     ]
 
 
-def plant_failed_then_success(rng: random.Random, population: Population, user: str, day: date) -> list[dict]:
-    # several failed attempts, one minute apart, then a success
+def plant_repeated_amount(rng: random.Random, population: Population, user: str, day: date) -> list[dict]:
+    # same amount sent again and again in a few minutes (e.g. Rs 9,999 to stay under a limit)
     start = random_utc_time(rng, day)
-    destination = other_user(rng, population, user)
-    amount = normal_amount(rng, population, user)
-    states = [TransactionState.FAILED] * FAILED_ATTEMPTS_BEFORE_SUCCESS + [TransactionState.COMPLETED]
-    return [
-        build_row(
-            population, TransactionType.TRANSFER, state, user, destination, amount,
-            population.devices[user][0], start + timedelta(minutes=i), TransactionChannel.APP,
-            is_synthetic_fraud=True,
-        )
-        for i, state in enumerate(states)
-    ]
-
-
-def plant_new_device_high_value(rng: random.Random, population: Population, user: str, day: date) -> list[dict]:
-    # high-value withdrawal from a device id never seen in this user's history
-    return [
-        build_row(
-            population, TransactionType.WITHDRAW, TransactionState.COMPLETED,
-            user, None, NEW_DEVICE_AMOUNT, f"{user}-NEW",
-            random_utc_time(rng, day), TransactionChannel.APP, population.bank_account[user],
-            is_synthetic_fraud=True,
-        )
-    ]
-
-
-def plant_pass_through(rng: random.Random, population: Population, user: str, day: date) -> list[dict]:
-    # large amount comes in, most of it leaves to a bank soon after (mule)
-    received_at = random_utc_time(rng, day)
-    sender = other_user(rng, population, user)
-    sent_at = received_at + timedelta(minutes=rng.randint(5, PASS_THROUGH_WINDOW_MINUTES))
+    step_seconds = REPEATED_WINDOW_MINUTES * 60 // REPEATED_TXN_COUNT
     return [
         build_row(
             population, TransactionType.TRANSFER, TransactionState.COMPLETED,
-            sender, user, PASS_THROUGH_AMOUNT, population.devices[sender][0], received_at,
-            TransactionChannel.APP, is_synthetic_fraud=True,
-        ),
-        build_row(
-            population, TransactionType.WITHDRAW, TransactionState.COMPLETED,
-            user, None, int(PASS_THROUGH_AMOUNT * PASS_THROUGH_OUT_RATIO),
-            population.devices[user][0], sent_at, TransactionChannel.APP, population.bank_account[user],
-            is_synthetic_fraud=True,
-        ),
+            user, other_user(rng, population, user), REPEATED_AMOUNT, population.devices[user][0],
+            start + timedelta(seconds=i * step_seconds), TransactionChannel.APP, is_synthetic_fraud=True,
+        )
+        for i in range(REPEATED_TXN_COUNT)
     ]
 
 
+def plant_failed_burst(rng: random.Random, population: Population, user: str, day: date) -> list[dict]:
+    # many failed attempts to the same destination in a couple of minutes
+    start = random_utc_time(rng, day)
+    destination = other_user(rng, population, user)
+    step_seconds = FAILED_BURST_WINDOW_MINUTES * 60 // FAILED_BURST_COUNT
+    return [
+        build_row(
+            population, TransactionType.TRANSFER, TransactionState.FAILED,
+            user, destination, normal_amount(rng, population, user), population.devices[user][0],
+            start + timedelta(seconds=i * step_seconds), TransactionChannel.APP, is_synthetic_fraud=True,
+        )
+        for i in range(FAILED_BURST_COUNT)
+    ]
+
+
+def plant_funnel(rng: random.Random, population: Population, user: str, day: date) -> list[dict]:
+    # many different users send in, then most of the total leaves to the user's bank (mule)
+    start = random_utc_time(rng, day)
+    senders = rng.sample([u for u in population.users if u != user], FUNNEL_SENDER_COUNT)
+    # +1 slot so the withdrawal is the last txn and still inside the window
+    step_seconds = FUNNEL_WINDOW_MINUTES * 60 // (FUNNEL_SENDER_COUNT + 1)
+    rows = [
+        build_row(
+            population, TransactionType.TRANSFER, TransactionState.COMPLETED,
+            sender, user, normal_amount(rng, population, sender), population.devices[sender][0],
+            start + timedelta(seconds=i * step_seconds), TransactionChannel.APP, is_synthetic_fraud=True,
+        )
+        for i, sender in enumerate(senders)
+    ]
+    total_received = sum(row["amount"] for row in rows)
+    rows.append(
+        build_row(
+            population, TransactionType.WITHDRAW, TransactionState.COMPLETED,
+            user, None, int(total_received * FUNNEL_OUT_RATIO), population.devices[user][0],
+            start + timedelta(seconds=FUNNEL_SENDER_COUNT * step_seconds), TransactionChannel.APP,
+            population.bank_account[user], is_synthetic_fraud=True,
+        )
+    )
+    return rows
+
+
+# order follows the senior's rule numbers: 5.1, 5.2, 5.3, 5.4, 5.8
 FRAUD_PLANTERS = [
     plant_velocity_burst,
     plant_amount_anomaly,
-    plant_failed_then_success,
-    plant_new_device_high_value,
-    plant_pass_through,
+    plant_repeated_amount,
+    plant_failed_burst,
+    plant_funnel,
 ]
 
 
